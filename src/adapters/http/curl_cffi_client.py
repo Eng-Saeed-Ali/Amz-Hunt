@@ -1,0 +1,1 @@
+"""[Phase 2 Placeholder] curl_cffi-based HTTP client adapter — implements IHttpClient."""

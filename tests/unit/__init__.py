@@ -1,0 +1,1 @@
+"""Unit Tests — core logic tested with mocked adapters."""

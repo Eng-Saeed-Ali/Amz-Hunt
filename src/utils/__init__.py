@@ -1,0 +1,1 @@
+"""Utility Functions — pure, stateless helpers with no domain logic."""

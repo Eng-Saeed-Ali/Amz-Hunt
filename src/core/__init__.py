@@ -1,0 +1,1 @@
+"""Core Logic Layer — ports (interfaces), models (entities), and orchestration."""

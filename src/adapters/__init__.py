@@ -1,0 +1,1 @@
+"""Adapter Layer — concrete implementations of core port interfaces."""

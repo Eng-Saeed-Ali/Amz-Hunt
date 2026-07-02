@@ -1,0 +1,1 @@
+"""[Phase 2 Placeholder] HTML DOM parser adapter (BeautifulSoup4 + lxml) — implements IParser."""

@@ -1,0 +1,1 @@
+"""Notification Adapters — alert delivery to external channels."""

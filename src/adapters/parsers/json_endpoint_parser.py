@@ -1,0 +1,1 @@
+"""[Phase 2 Placeholder] JSON endpoint parser adapter — implements IParser for AJAX/XHR promo data."""

@@ -1,0 +1,1 @@
+"""Amz-Hunt: Amazon Egypt Promo Monitor — Core Application Package."""

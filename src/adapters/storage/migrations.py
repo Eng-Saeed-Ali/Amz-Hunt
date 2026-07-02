@@ -1,0 +1,1 @@
+"""[Phase 2 Placeholder] SQLite schema migrations — DDL for promotions, target_endpoints, scan_log."""

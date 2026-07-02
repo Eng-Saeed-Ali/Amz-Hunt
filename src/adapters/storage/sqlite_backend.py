@@ -1,0 +1,1 @@
+"""[Phase 2 Placeholder] aiosqlite-backed storage adapter — implements IStorageBackend."""

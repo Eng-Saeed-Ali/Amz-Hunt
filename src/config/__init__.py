@@ -1,0 +1,1 @@
+"""Configuration Layer — settings, target registry, and constants."""

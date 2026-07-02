@@ -1,0 +1,1 @@
+"""[Phase 2 Placeholder] Telegram Bot API adapter — implements INotificationService."""

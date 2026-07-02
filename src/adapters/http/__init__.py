@@ -1,0 +1,1 @@
+"""HTTP Client Adapters — TLS fingerprint impersonation and header rotation."""

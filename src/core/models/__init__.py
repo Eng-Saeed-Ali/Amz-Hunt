@@ -1,0 +1,1 @@
+"""Domain Entities — immutable dataclasses representing core business objects."""

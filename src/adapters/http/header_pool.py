@@ -1,0 +1,1 @@
+"""[Phase 2 Placeholder] HTTP header pool — browser-realistic header rotation for curl_cffi."""

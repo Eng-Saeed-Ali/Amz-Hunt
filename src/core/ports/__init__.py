@@ -1,0 +1,1 @@
+"""Abstract Port Interfaces (Protocols) — contracts that adapters must fulfill."""

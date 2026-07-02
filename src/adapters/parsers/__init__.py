@@ -1,0 +1,1 @@
+"""Parser Adapters — extract promotion candidates from HTTP responses."""

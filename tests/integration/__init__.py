@@ -1,0 +1,1 @@
+"""Integration Tests — real adapters tested against fixtures (no live external calls)."""

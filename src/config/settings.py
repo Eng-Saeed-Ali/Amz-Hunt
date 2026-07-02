@@ -1,0 +1,1 @@
+"""[Phase 3 Placeholder] Configuration loader — .env, TOML, or YAML settings for the orchestrator."""
