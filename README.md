@@ -52,22 +52,25 @@ A specialized network layer designed to bypass Amazon's sophisticated Web Applic
 * Developed and optimized for **Python 3.11+**.
 * Fully verified decoupled architecture with strict `runtime_checkable` protocol compliance.
 
-### Installation & Setup
-1. **Clone the Repository:**
-   ```bash
-  git clone https://github.com/Eng-Saeed-Ali/Amz-Hunt.git
-   cd Amz-Hunt
-   ```
-2. **Install the Adapters (Dependencies):**
-   ```bash
-   python -m pip install curl_cffi aiosqlite beautifulsoup4 lxml aiohttp
-   ```
-3. **Verify the Infrastructure:**
-   Run the sanity check script to ensure all adapters successfully bind to the Core Domain ports.
-   ```bash
-   python temp_verify_phase2.py
-   ```
-   *Successful execution will yield: `✅ ALL SANITY CHECKS PASSED`*
+### 🛠️ Installation & Setup | التثبيت والتشغيل السريع
+
+#### 1️⃣ Clone the Repository
+```bash
+git clone https://github.com/Eng-Saeed-Ali/Amz-Hunt.git
+cd Amz-Hunt
+```
+
+#### 2️⃣ Install the Adapters (Dependencies)
+```bash
+python -m pip install curl_cffi aiosqlite beautifulsoup4 lxml aiohttp
+```
+
+#### 3️⃣ Verify the Infrastructure
+Run the sanity check script to ensure all adapters successfully bind to the Core Domain ports:
+```bash
+python temp_verify_phase2.py
+```
+*Successful execution will yield: `✅ ALL SANITY CHECKS PASSED`*
 
 ---
 *Building robust, anti-fragile software architectures from the core domain up.* ````
