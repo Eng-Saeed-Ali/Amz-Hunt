@@ -55,7 +55,7 @@ A specialized network layer designed to bypass Amazon's sophisticated Web Applic
 ### Installation & Setup
 1. **Clone the Repository:**
    ```bash
-   git clone [https://github.com/YOUR_USERNAME/Amz-Hunt.git](https://github.com/YOUR_USERNAME/Amz-Hunt.git)
+  git clone https://github.com/Eng-Saeed-Ali/Amz-Hunt.git
    cd Amz-Hunt
    ```
 2. **Install the Adapters (Dependencies):**
