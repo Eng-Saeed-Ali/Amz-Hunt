@@ -1,4 +1,4 @@
-# Agent_Handoff.md — Phase 1 Completion → Phase 2 Bridge
+# Agent_Handoff.md — Phase 2 Completion → Phase 3 Bridge
 
 ## - [x] Phase 1 Completed: Summary of Deliverables
 
@@ -37,19 +37,19 @@ Amz-Hunt/
 │   │   ├── __init__.py
 │   │   ├── http/
 │   │   │   ├── __init__.py
-│   │   │   ├── curl_cffi_client.py  (PLACEHOLDER — Phase 2)
-│   │   │   └── header_pool.py       (PLACEHOLDER — Phase 2)
+│   │   │   ├── curl_cffi_client.py  (IMPLEMENTED — Phase 2)
+│   │   │   └── header_pool.py       (IMPLEMENTED — Phase 2)
 │   │   ├── storage/
 │   │   │   ├── __init__.py
-│   │   │   ├── sqlite_backend.py    (PLACEHOLDER — Phase 2)
-│   │   │   └── migrations.py        (PLACEHOLDER — Phase 2)
+│   │   │   ├── sqlite_backend.py    (IMPLEMENTED — Phase 2)
+│   │   │   └── migrations.py        (IMPLEMENTED — Phase 2)
 │   │   ├── notification/
 │   │   │   ├── __init__.py
-│   │   │   └── telegram_bot.py      (PLACEHOLDER — Phase 2)
+│   │   │   └── telegram_bot.py      (IMPLEMENTED — Phase 2)
 │   │   └── parsers/
 │   │       ├── __init__.py
-│   │       ├── html_dom_parser.py    (PLACEHOLDER — Phase 2)
-│   │       └── json_endpoint_parser.py (PLACEHOLDER — Phase 2)
+│   │       ├── html_dom_parser.py    (IMPLEMENTED — Phase 2)
+│   │       └── json_endpoint_parser.py (IMPLEMENTED — Phase 2)
 │   ├── config/
 │   │   ├── __init__.py
 │   │   └── settings.py              (PLACEHOLDER — Phase 3)
@@ -96,7 +96,39 @@ All Ports are implemented as `typing.Protocol` with `@runtime_checkable` decorat
 
 ---
 
-## - [ ] Architectural Notes for the Next Agent
+## - [x] Phase 2 Completed: Concrete Adapter Implementations
+
+### Summary of Implemented Adapters
+
+| Adapter | File | Protocol | Key Features |
+|---------|------|----------|--------------|
+| **Storage** | `src/adapters/storage/sqlite_backend.py` | `IStorageBackend` | `aiosqlite` async, WAL mode, idempotent migrations (v1), connection pooling via single connection, all 10 protocol methods, `StorageError` wrapping |
+| **Storage Migrations** | `src/adapters/storage/migrations.py` | — | Schema: promotions (UNIQUE fingerprint), target_endpoints, scan_log (append-only), schema_version table |
+| **HTTP Client** | `src/adapters/http/curl_cffi_client.py` | `IHttpClient` | Session pool keyed by impersonate profile, TLS fingerprint impersonation (Chrome/Firefox/Safari/Edge), header rotation integration, latency measurement, `HttpClientError` wrapping |
+| **Header Pool** | `src/adapters/http/header_pool.py` | — | 5 browser profiles, shuffled rotation, Sec-CH-UA Client Hints, Sec-Fetch-*, Egypt/US/Arabic locales, Amazon Egypt referrers |
+| **HTML DOM Parser** | `src/adapters/parsers/html_dom_parser.py` | `IParser` (`html_dom`) | BeautifulSoup4 + lxml, 23 CSS selector patterns (data-promo-id=1.0, badges=0.85, IDs=0.75, classes=0.55), DOM walk-up to semantic containers, URL resolution, dynamic confidence scoring, `ParserError` wrapping |
+| **JSON Endpoint Parser** | `src/adapters/parsers/json_endpoint_parser.py` | `IParser` (`json_endpoint`) | Standard `json` module, 12 known Amazon AJAX paths, 7 ID/title/URL field mappings, two-phase discovery (known paths → broad heuristic search), `ParserError` wrapping |
+| **Telegram Notifier** | `src/adapters/notification/telegram_bot.py` | `INotificationService` | Raw `aiohttp` to Telegram Bot API, HTML parse mode, exponential backoff (250ms→500ms→1s→2s→4s, 5 retries), 429/5xx retry logic with `retry_after`, web preview disabled, `NotificationError` wrapping |
+
+### Phase 2 Validation Checklist — ALL COMPLETE ✅
+
+- [x] `sqlite_backend.py` passes `isinstance(sqlite_backend, IStorageBackend)` (runtime_checkable)
+- [x] `curl_cffi_client.py` implements full `IHttpClient` protocol with session pooling
+- [x] `html_dom_parser.py` extracts `ParsedCandidate` from Amazon-like HTML with confidence scoring
+- [x] `telegram_bot.py` implements full `INotificationService` with exponential backoff retries
+- [x] All adapter errors inherit from correct `AmzHuntError` subclass (`StorageError`, `HttpClientError`, `ParserError`, `NotificationError`)
+- [x] SQLite database created at configurable path (`data/amz_hunt.db` default)
+
+### Files NOT Touched in Phase 2 (Per Contract)
+
+- `src/core/**` — All core models and ports remain frozen from Phase 1
+- `Architecture_Blueprint.md` — Source of truth, reference only
+- `src/core/orchestrator.py` — Phase 3 territory
+- `src/config/settings.py`, `src/utils/logger.py`, `src/utils/url_utils.py` — Phase 3
+
+---
+
+## - [ ] Architectural Notes for the Next Agent (Phase 3)
 
 ### Immutability Rules — DO NOT BREAK THESE
 
@@ -122,82 +154,155 @@ All Ports are implemented as `typing.Protocol` with `@runtime_checkable` decorat
 
 9. **Domain exceptions form a strict hierarchy:** `AmzHuntError` → `HttpClientError`, `StorageError`, `NotificationError`, `ParserError`, `ValidationError`. All adapter-level exceptions MUST inherit from the appropriate domain exception. Generic Python exceptions (like `RuntimeError`, `ValueError`) must NEVER leak from adapter code — catch and wrap them.
 
-10. **The orchestrator's global error boundary catches `AmzHuntError`** only. Any adapter that raises a non-`AmzHuntError` exception will crash the polling loop. This is a hard contract.
+10. **The orchestrator's global error boundary catches `AmzHuntError` only.** Any adapter that raises a non-`AmzHuntError` exception will crash the polling loop. This is a hard contract.
 
 ---
 
-## - [ ] Next Steps for Phase 2: Building the Concrete Adapters
+## - [ ] Next Steps for Phase 3: Core Orchestration & Entry Point
 
-### Priority Order (build in this sequence):
+### Priority Order (Build in This Sequence)
 
-#### 1. `src/adapters/storage/sqlite_backend.py` — HIGHEST PRIORITY
-Implement `IStorageBackend` using `aiosqlite`. This is the first adapter because:
-- The `migrations.py` schema must be designed first (next to this file)
-- Every other adapter needs the storage backend for its integration tests
-- Must be async-safe for concurrent asyncio tasks
+#### 1. `src/core/dedup_engine.py` — HIGHEST PRIORITY
+Implement the deduplication engine that bridges parsers and storage.
 
-**Key implementation notes:**
-- Use `aiosqlite` (NOT synchronous `sqlite3`) — all methods must be `async`
-- Schema: promotions table with UNIQUE constraint on `content_fingerprint`, target_endpoints table, scan_log table (append-only), and a migration version tracker
-- `upsert_promotion()` returns `True` on INSERT, `False` on UPDATE (use `INSERT OR IGNORE` + check `rowcount`)
-- `record_failure()` increments `consecutive_failures` in SQL (`UPDATE ... SET consecutive_failures = consecutive_failures + 1`) and returns the new value
-- `log_scan()` serializes `ScanResult` fields into scan_log columns — the `ScanOutcome` enum should be stored as its `.name` string
+**Key responsibilities:**
+- `process_candidates(storage, candidates, validator)` → `list[Promotion]`
+- Filter candidates: `confidence_score >= 0.6` (validator threshold)
+- For each qualifying candidate:
+  - Compute `content_fingerprint = Promotion.compute_fingerprint(candidate.content_snippet)`
+  - Check `storage.get_promotion_by_fingerprint(fingerprint)`
+  - If EXISTS → update `last_seen_utc` silently, skip
+  - If NEW → create `Promotion` entity, call `storage.upsert_promotion()`
+- Return list of genuinely NEW promotions (where `upsert_promotion()` returned `True`)
 
-#### 2. `src/adapters/http/curl_cffi_client.py` — HIGH PRIORITY
-Implement `IHttpClient` using `curl_cffi.requests.AsyncSession`.
+**Two-layer dedup (per Blueprint):**
+| Layer | Check | Purpose |
+|-------|-------|---------|
+| Fingerprint Match | SHA256 of content snippet | Same promo, same page structure — don't re-alert even if URL changed |
+| Promotion ID Match | `promo_id` from Amazon's `data-promo-id` | Amazon's own unique identifier — ultimate authority |
 
-**Key implementation notes:**
-- Use `curl_cffi.requests` (NOT `curl_cffi.asyncio` — the Blueprint specifies the requests API)
-- Maintain a `dict[str, AsyncSession]` pool keyed by impersonate profile — reuse sessions for connection pooling
-- `fetch()` must catch ALL network exceptions and wrap them in `HttpClientError` (from `src.core.models.exceptions`)
-- HTTP-level errors (4xx, 5xx, CAPTCHA pages) are NOT exceptions — they are recorded in the `HttpResponse.status_code` and `HttpResponse.body`
-- `rotate_fingerprint()` cycles through a configurable ordered list: `["chrome124", "chrome120", "firefox120", "safari17_0", "edge101"]`
-- `session_metrics()` is synchronous — aggregate counts from the session pool
+#### 2. `src/core/validator.py` — HIGH PRIORITY
+Implement keyword + DOM pattern validation per Blueprint Section 2.3.
 
-#### 3. `src/adapters/http/header_pool.py`
-Build a header rotation utility that provides browser-realistic `User-Agent`, `Accept-Language`, `Sec-Ch-Ua`, and other Client Hints headers. The `curl_cffi_client` will consume this pool.
+**Validation logic:**
+```
+confidence_score = 0.0
++ 0.3 if ANY Arabic keyword in title/nearby text (خصم, عرض, تخفيضات, صفقة, كوبون, توفير)
++ 0.3 if ANY English keyword in title/nearby text (deal, coupon, offer, sale, discount, promo)
++ 0.4 if ANY DOM pattern matched ([class*="dealBadge"], [data-promo-id], etc.)
+Candidate passes if confidence_score >= 0.6
+```
 
-#### 4. `src/adapters/parsers/html_dom_parser.py` + `src/adapters/parsers/json_endpoint_parser.py`
-Implement `IParser` for both parser types.
+#### 3. `src/core/scheduler.py` — HIGH PRIORITY
+Implement `ActiveHoursScheduler` for target selection with jitter and time-of-day logic.
 
-**HTML DOM Parser:**
-- `parser_type` property returns `"html_dom"`
-- Uses `BeautifulSoup4` with `lxml` parser (NOT `html.parser` — lxml is faster and more tolerant of Amazon's messy HTML)
-- Extract promo candidates by CSS selector matching (cards, data-promo-id attributes, deal widgets)
-- Assign `confidence_score` based on selector specificity: exact `data-promo-id` match = 1.0, fuzzy title match = 0.5–0.7
+**Key methods:**
+- `select_next_target(storage: IStorageBackend, now_utc: float) -> TargetEndpoint | None`
+- `is_within_active_hours(now_utc: float, active_window: tuple[int, int]) -> bool`
+- Jitter formula: `effective_interval = poll_interval + random.uniform(-15, +15)`
+- Active hours: Cairo UTC+2 → configure as `(6, 0)` UTC = 08:00–02:00 Cairo
+- During inactive hours: slow scan mode (5–10 min intervals)
+- Circuit breaker check: skip if `endpoint.is_in_cooldown(now_utc)`
 
-**JSON Endpoint Parser:**
-- `parser_type` property returns `"json_endpoint"`
-- Parses Amazon AJAX/JSON responses that contain structured promo data
-- Extract from known Amazon JSON response shapes (e.g., `response.deals[]`, `response.promotions[]`)
+#### 4. `src/core/parser_router.py` — HIGH PRIORITY
+Simple dispatcher: `endpoint.parser_type` → `IParser` instance.
 
-**Critical:** Return `[]` (empty list) if nothing found — never `None`.
+**Methods:**
+- `register(parser_type: str, parser: IParser)`
+- `get(parser_type: str) -> IParser | None`
+- Pre-register `"html_dom"` → `HTMLDOMParser()`, `"json_endpoint"` → `JSONEndpointParser()`
 
-#### 5. `src/adapters/notification/telegram_bot.py`
-Implement `INotificationService` using `aiogram` or raw `aiohttp` against Telegram Bot API.
+#### 5. `src/core/notification_queue.py` — HIGH PRIORITY
+Async queue consumer with retry/backoff for Telegram dispatch.
 
-**Key implementation notes:**
-- Retry with exponential backoff: 250ms → 500ms → 1s → 2s → fail (max 4 retries)
-- `send_promo_alert()` formats promotion as: title, URL, timestamp, source endpoint hint
-- `send_health_check()` and `send_error_alert()` format structured Telegram messages
-- Severity levels: "info" = ℹ️, "warning" = ⚠️, "critical" = 🚨
+**Key responsibilities:**
+- `asyncio.Queue[tuple[Promotion, int]]` — (promo, retry_count)
+- Consumer task: `await queue.get()`, call `notifier.send_promo_alert()`
+- On success: `storage.mark_alert_sent(promo_id)`
+- On failure: if `retry_count < 3`, requeue with `2**retry_count` seconds delay
+- On exhaustion: log error, call `notifier.send_error_alert()`
 
-### Phase 2 Validation Checklist
+#### 6. `src/core/orchestrator.py` — CORE PRIORITY
+The `ScanOrchestrator` — master coordination logic.
 
-Before handing off to Phase 3, the Phase 2 agent MUST verify:
-- [ ] `sqlite_backend.py` passes `isinstance(sqlite_backend, IStorageBackend)` (runtime_checkable)
-- [ ] `curl_cffi_client.py` successfully fetches `https://www.amazon.eg/` with status 200
-- [ ] `html_dom_parser.py` extracts at least one `ParsedCandidate` from a known Amazon deals page
-- [ ] `telegram_bot.py` sends a test message to a configurable chat ID
-- [ ] All adapter errors inherit from the correct `AmzHuntError` subclass
-- [ ] SQLite database file is created at `data/amz_hunt.db` (configurable path)
+**Constructor:**
+```python
+ScanOrchestrator(
+    http: IHttpClient,
+    storage: IStorageBackend,
+    notifier: INotificationService,
+    parsers: ParserRouter,
+    scheduler: ActiveHoursScheduler,
+    dedup: DedupEngine,
+    validator: KeywordValidator,
+    notification_queue: NotificationQueue,
+)
+```
 
-### Files NOT to touch in Phase 2
+**Main loop (`run_forever()`):**
+1. `shutdown_flag = asyncio.Event()` (set by signal handler)
+2. While not shutdown:
+   - `target = await scheduler.select_next_target(storage, now)`
+   - If None → `await asyncio.sleep(5)`, continue
+   - `await poll_single_endpoint(target, now)` (with global error boundary)
+   - `await asyncio.sleep(effective_interval_with_jitter)`
 
-- `src/core/**` — All core models and ports are complete and frozen for Phase 1
-- `Architecture_Blueprint.md` — Source of truth, reference only
-- `src/core/orchestrator.py` — This is Phase 3 territory
+**Global error boundary (`poll_single_endpoint`):**
+- Every code path returns `ScanResult` — NEVER raises
+- Circuit breaker gate → HTTP fetch → Status code routing → Parse → Validate/Dedup → Queue notification → Log scan
+- See Blueprint Section 5.1 for full pseudocode
+
+#### 7. `src/core/di_container.py` — COMPOSITION ROOT
+Assembles all adapters and wires dependencies.
+
+**Responsibilities:**
+- Load config from `src.config.settings` (Phase 3)
+- Instantiate: `CurlCffiClient`, `SQLiteBackend`, `TelegramBotNotifier`, `HTMLDOMParser`, `JSONEndpointParser`
+- Build `ParserRouter` with both parsers
+- Create `ActiveHoursScheduler`, `DedupEngine`, `KeywordValidator`, `NotificationQueue`
+- Construct `ScanOrchestrator` with all dependencies
+- Return orchestrator instance
+
+#### 8. `src/config/settings.py` — CONFIGURATION
+Pydantic-based Settings model loading from `.env`:
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+- `DATABASE_PATH` (default: `data/amz_hunt.db`)
+- `DEFAULT_IMPERSONATE_PROFILE` (default: `chrome124`)
+- `LOG_LEVEL` (default: `INFO`)
+
+#### 9. `scripts/seed_targets.py` — DB SEEDING
+Reads `src/config/target_registry.py` (curated `TargetEndpoint` list) and upserts into SQLite.
+
+#### 10. `scripts/run_monitor.py` — ENTRY POINT
+```python
+# Single command: python -m scripts.run_monitor
+async def main():
+    container = DIContainer()
+    orchestrator = await container.build()
+    await orchestrator.run_forever()
+```
+
+#### 11. `src/core/shutdown.py` — GRACEFUL SHUTDOWN
+SIGTERM/SIGINT handler → set shutdown flag → wait for in-flight polls (max 30s) → drain notification queue (10s timeout) → close DB → log final metrics.
 
 ---
 
-*Generated by Phase 1 Foundation Agent — ready for Phase 2 Adapter Implementation.*
+### Phase 3 Validation Checklist
+
+Before considering Phase 3 complete:
+- [ ] `dedup_engine.py` correctly implements two-layer dedup (fingerprint + promo_id)
+- [ ] `validator.py` applies Arabic/English keyword + DOM pattern scoring
+- [ ] `scheduler.py` handles jitter, active hours, circuit breaker, slow-scan mode
+- [ ] `parser_router.py` dispatches correctly for both parser types
+- [ ] `notification_queue.py` retries with backoff, marks alert_sent on success
+- [ ] `orchestrator.py` has global error boundary returning `ScanResult` for ALL paths
+- [ ] `di_container.py` assembles all adapters without importing them in core logic
+- [ ] `settings.py` loads from `.env` with sensible defaults
+- [ ] `seed_targets.py` populates DB from curated registry
+- [ ] `run_monitor.py` is the single entry point
+- [ ] `shutdown.py` handles SIGTERM/SIGINT gracefully
+- [ ] Integration tests pass: full pipeline from fetch → parse → dedup → notify → log
+
+---
+
+*Generated by Phase 2 Adapter Implementation Agent — ready for Phase 3 Core Orchestration.*
