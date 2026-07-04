@@ -5,7 +5,7 @@
 ![Telegram](https://img.shields.io/badge/Telegram_Bot-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)
 ![Architecture](https://img.shields.io/badge/Hexagonal_Architecture-FF4B4B?style=for-the-badge&logo=blueprint&logoColor=white)
 
-> **Author:** [Your Name / Eng-Saeed-Ali]  
+> **Author:** Eng-Saeed-Ali  
 > **Role:** Backend & Software Architect  
 > **Status:** Production-Ready (Golden Master) 🚀
 
@@ -44,7 +44,7 @@ The system deliberately bypasses traditional scraping bottlenecks (such as IP ba
 Developed and optimized for **Python 3.11+**. Run the following commands in your terminal to clone and setup dependencies:
 
 ```bash
-git clone https://github.com/Eng-Saeed-Ali/Amz-Hunt.git
+git clone [https://github.com/Eng-Saeed-Ali/Amz-Hunt.git](https://github.com/Eng-Saeed-Ali/Amz-Hunt.git)
 cd Amz-Hunt
 pip install curl_cffi aiosqlite beautifulsoup4 lxml aiohttp pydantic-settings
 ```
@@ -55,8 +55,6 @@ Create your environment file to store secrets securely (it is ignored by Git aut
 ```bash
 cp .env.example .env
 ```
-
-*Open and edit the newly created `.env` file and add your actual Telegram Bot Token and Chat ID.*
 
 ### 3️⃣ Seed the Database (Idempotent Setup)
 Initialize the SQLite database and insert the default Amazon Egypt targets into the database securely without causing any conflicts or data duplication:
@@ -71,8 +69,6 @@ Start the main orchestrator engine along with background notification workers:
 ```bash
 python -m scripts.run_monitor
 ```
-
-*You will immediately start seeing clean logs in the terminal, and real-time promotions will be pushed directly to your Telegram group!*
 
 ---
 
