@@ -257,7 +257,7 @@ storage → http_client → router → dedup → scheduler → validator → que
 - [x] `scripts/seed_targets.py` populates DB with 2 default Amazon Egypt targets (idempotent)
 - [x] `scripts/run_monitor.py` is the single entry point (`python -m scripts.run_monitor`)
 - [x] `src/core/shutdown.py` handles SIGTERM/SIGINT gracefully (Unix asyncio-native + Windows fallback)
-- [ ] Integration tests: full pipeline from fetch → parse → dedup → notify → log (NEXT PHASE)
+- [x] Integration tests: full pipeline (fetch → parse → dedup → notify → log) 
 
 ---
 
