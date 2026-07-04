@@ -41,7 +41,7 @@ The system deliberately bypasses traditional scraping bottlenecks (such as IP ba
 ## 🚀 Getting Started | التشغيل السريع
 
 ### 1️⃣ Clone the Repository & Install Dependencies
-Developed and optimized for **Python 3.11+**. Run the following commands in your terminal to clone and setup dependencies:
+Developed and optimized for **Python 3.11+**.
 
 ```bash
 git clone [https://github.com/Eng-Saeed-Ali/Amz-Hunt.git](https://github.com/Eng-Saeed-Ali/Amz-Hunt.git)
@@ -50,54 +50,49 @@ pip install curl_cffi aiosqlite beautifulsoup4 lxml aiohttp pydantic-settings
 ```
 
 ### 2️⃣ Environment Configuration
-Create your environment file to store secrets securely (it is ignored by Git automatically):
+Create your environment file to store secrets securely (it is ignored by git):
 
 ```bash
 cp .env.example .env
 ```
 
+Edit the .env file and add your Telegram Bot Token and Chat ID.
+
 ### 3️⃣ Seed the Database (Idempotent Setup)
-Initialize the SQLite database and insert the default Amazon Egypt targets into the database securely without causing any conflicts or data duplication:
+Initialize the SQLite database and insert default Amazon Egypt targets:
 
 ```bash
 python -m scripts.seed_targets
 ```
 
 ### 4️⃣ Launch the Monitor
-Start the main orchestrator engine along with background notification workers:
+Start the orchestrator and background notification workers:
 
 ```bash
 python -m scripts.run_monitor
 ```
 
+You will immediately start seeing logs in the terminal, and real-time promotions will be pushed to your Telegram.
+
 ---
 
 ## 📁 Directory Structure (Ports & Adapters)
-
-This clean directory tree maps out how the Hexagonal Architecture pattern isolates our Core application from outside dependencies:
 
 ```text
 src/
 ├── core/                   # The Core Domain (Zero external dependencies)
 │   ├── models/             # Frozen Dataclasses (Promotion, TargetEndpoint)
 │   ├── ports/              # Interfaces (IStorageBackend, IHttpClient)
-│   ├── dedup_engine.py     # Content fingerprinting logic
-│   ├── scheduler.py        # Jitter & active hours logic
-│   ├── validator.py        # Text & keyword filter logic
-│   ├── parser_router.py    # Multi-parser dispatcher
-│   ├── notification_queue.py # Async queue with backoff
-│   ├── orchestrator.py     # The Master Pipeline execution loop
-│   └── di_container.py     # Dependency Injection / Composition Root
-├── adapters/               # The Outside World (Infrastructure integration)
-│   ├── storage/            # SQLite with WAL mode implementation
-│   ├── http/               # curl_cffi with Header Rotation implementation
+│   ├── orchestrator.py     # The Master Pipeline
+│   └── di_container.py     # Dependency Injection Root
+├── adapters/               # The Outside World
+│   ├── storage/            # SQLite with WAL mode
+│   ├── http/               # curl_cffi with Header Rotation
 │   ├── parsers/            # BeautifulSoup4 DOM & JSON extractors
-│   └── notification/       # Telegram Bot API implementation
+│   └── notification/       # Telegram Bot API
 ├── config/
-│   └── settings.py         # Pydantic Env Loader (loads secrets securely)
-└── scripts/                # Execution Entry Points
-    ├── seed_targets.py     # Database seeder script
-    └── run_monitor.py      # Main system execution script
+│   └── settings.py         # Pydantic Env Loader
+└── scripts/                # Entry Points
 ```
 
 ---
