@@ -1,0 +1,75 @@
+# =============================================================================
+# Amz-Hunt — Docker Build Context Exclusions
+# =============================================================================
+# These files/directories are excluded from the Docker build context.
+# Excluding them speeds up builds and prevents leaking local state into images.
+# =============================================================================
+
+# ── Git ─────────────────────────────────────────────────────────────────────
+.git/
+.gitattributes
+.gitignore
+.gitmodules
+
+# ── Python Cache & Bytecode ─────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ── Virtual Environments ────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ── Environment Variables (Secrets — NEVER in images) ───────────────────────
+.env
+.env.local
+.env.*
+!.env.example
+
+# ── Local Database Files (Runtime State, Not Source) ────────────────────────
+data/*.db
+data/*.sqlite3
+data/*.sqlite
+data/*.db-shm
+data/*.db-wal
+data/*.sqlite3-shm
+data/*.sqlite3-wal
+
+# ── Testing ─────────────────────────────────────────────────────────────────
+tests/
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# ── Documentation & Blueprints (Not Needed at Runtime) ──────────────────────
+Architecture_Blueprint.md
+Agent_Handoff.md
+docs/
+
+# ── IDE & Editor Files ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Logs & Temp Files ────────────────────────────────────────────────────────
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+
+# ── Docker Files (Self-Referential — Not Needed Inside Image) ───────────────
+Dockerfile
+.dockerignore
+docker-compose.yml

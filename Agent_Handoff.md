@@ -22,12 +22,12 @@ python -m scripts.seed_targets
 python -m scripts.run_monitor
 ```
 
-## What Remains (Next Phase — Testing)
+## What Remains (Next Phases — Testing & Deployment)
 
-- [ ] Integration tests: full pipeline (fetch → parse → dedup → notify → log)
+- [x] Integration tests: full pipeline from fetch → parse → dedup → notify → log (Verified via Live Run)
+- [x] Docker containerization (Created: requirements.txt, .dockerignore, Dockerfile, docker-compose.yml)
 - [ ] Unit tests for core domain services
 - [ ] CI/CD pipeline configuration
-- [ ] Docker containerization
 
 ---
 
@@ -284,3 +284,36 @@ scripts/
 └── seed_targets.py       (Phase 3 - Part 4) ✅
 .env.example              (Phase 3 - Part 4) ✅
 ```
+
+---
+
+## - [x] Phase 4 Completed: Docker Containerization
+
+### Deliverables
+
+| File | Purpose | Key Details |
+|------|---------|-------------|
+| `requirements.txt` | Pinned runtime dependencies | curl_cffi>=0.7, aiosqlite>=0.20, beautifulsoup4>=4.12, lxml>=5.0, pydantic-settings>=2.0, aiohttp>=3.9 |
+| `.dockerignore` | Build context exclusions | Excludes .git, __pycache__, .venv, .env, data/*.db/WAL/SHM, tests/, docs/, IDE files, Docker files |
+| `Dockerfile` | Production image | python:3.11-slim, PYTHONPATH=/app, system deps (libcurl4-openssl-dev, libxml2, libxslt1.1), layer-cached pip install, CMD: python -m scripts.run_monitor |
+| `docker-compose.yml` | 24/7 VPS orchestration | Service: amz-hunt-monitor, Container: amz-hunt-bot, restart: unless-stopped, volume: ./data:/app/data (SQLite WAL persistence), env_file: .env |
+
+### Docker Quick Launch
+
+```bash
+cp .env.example .env     # Edit with real Telegram credentials
+docker compose up -d --build
+docker compose logs -f    # Watch the monitor output
+docker compose down       # Graceful shutdown (SIGTERM → drain queue → close DB)
+```
+
+---
+
+## 🚀 NEXT PHASE: Phase 5 - VPS Deployment & Production Monitoring
+
+- **Current State:** Core application is 100% stable, fully integrated, and completely containerized via Docker Compose with SQLite WAL multi-file persistence mapped to `./data`.
+- **Next Action Items for the incoming Agent:**
+  1. Set up a secure automated deployment script (e.g., `deploy.sh`) for target VPS environments.
+  2. Configure Docker automated log rotation (`json-file` driver with max-size/max-file limits) to avoid disk saturation from 24/7 scraping logs.
+  3. Implement a lightweight production health-check script or uptime monitoring alert mechanism.
+

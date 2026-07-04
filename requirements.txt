@@ -1,0 +1,28 @@
+# =============================================================================
+# Amz-Hunt — Runtime Dependencies
+# =============================================================================
+# Zero-budget stack: MIT / Apache 2.0 licensed libraries only.
+# All dependencies are pure Python with C-extension wheels available for Linux.
+# =============================================================================
+
+# ── TLS Fingerprint Impersonation (Critical Anti-Detection) ─────────────────
+# Replicates Chrome/Firefox TLS handshake at the compiled-C level.
+# Amazon WAF inspects JA3/JA4 fingerprints — curl_cffi bypasses this.
+curl_cffi>=0.7.0,<1.0.0
+
+# ── Async SQLite (WAL Mode, Non-Blocking) ──────────────────────────────────
+# Async wrapper around stdlib sqlite3 — prevents event-loop blocking.
+aiosqlite>=0.20.0,<1.0.0
+
+# ── HTML Parsing ───────────────────────────────────────────────────────────
+# BeautifulSoup4 with lxml backend for fast DOM traversal.
+beautifulsoup4>=4.12.0,<5.0.0
+lxml>=5.0.0,<6.0.0
+
+# ── Configuration Management ───────────────────────────────────────────────
+# Pydantic-based settings loaded from .env file.
+pydantic-settings>=2.0.0,<3.0.0
+
+# ── Async HTTP (Telegram Bot API) ──────────────────────────────────────────
+# Lightweight async HTTP client for Telegram Bot API calls.
+aiohttp>=3.9.0,<4.0.0

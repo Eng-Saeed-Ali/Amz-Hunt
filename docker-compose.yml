@@ -1,0 +1,37 @@
+# =============================================================================
+# Amz-Hunt — Docker Compose Configuration
+# =============================================================================
+# Designed for 24/7 VPS deployment with persistent SQLite WAL storage.
+#
+# Quick Start:
+#   1. Copy .env.example to .env and fill in your Telegram credentials.
+#   2. docker compose up -d --build
+#   3. docker compose logs -f   (to watch the monitor output)
+#   4. docker compose down      (graceful shutdown — SIGTERM triggers drain+close)
+# =============================================================================
+
+services:
+  amz-hunt-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: amz-hunt-bot
+    restart: unless-stopped
+
+    # ── Persistent SQLite Storage (CRITICAL) ────────────────────────────────
+    # Bind-mount ./data:/app/data preserves the SQLite database AND its WAL
+    # auxiliary files (.db-shm, .db-wal) across container restarts/recreates.
+    # This is essential per Architecture_Blueprint §2.2:
+    #   "SQLite Database stores all Promotion records, TargetEndpoint mutable
+    #    state (last_polled_utc, consecutive_failures, circuit_breaker_until_utc),
+    #    and ScanRecord telemetry. Survives process restart indefinitely."
+    # Without this volume, every docker compose down/up would wipe the database
+    # and the monitor would start with zero state — losing all dedup history.
+    volumes:
+      - ./data:/app/data
+
+    # ── Environment Variables ────────────────────────────────────────────────
+    # Loads TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, DB_PATH, LOG_LEVEL from .env.
+    # Ensure .env exists before starting (copy from .env.example and edit).
+    env_file:
+      - .env
