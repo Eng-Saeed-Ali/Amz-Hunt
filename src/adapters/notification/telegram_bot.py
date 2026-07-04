@@ -83,16 +83,26 @@ class TelegramBotNotifier:
     # ── INotificationService Protocol Implementation ──────────────────
 
     async def send_promo_alert(self, promotion: Promotion) -> NotificationResult:
-        """Send a promotion alert to Telegram.
+        """Send a promotion alert to Telegram with a beautified Arabic HTML template.
 
         Format (HTML):
-        🔥 <b>New Promo on Amazon Egypt!</b>
+        🔥 <b>صيد جديد من عروض أمازون مصر!</b>
+        ━━━━━━━━━━━━━━━━━━
+        📦 <b>المنتج:</b>
+        <i>{title}</i>
 
-        <b>{title}</b>
-        <a href="{url}">View Deal</a>
+        💰 <b>السعر في العرض:</b> <code>{deal_price}</code>
+        <s>❌ <b>السعر الأصلي:</b> {list_price}</s>  ← only if list_price exists
+        ━━━━━━━━━━━━━━━━━━
+        🔗 <b>رابط القنص المباشر:</b>
+        👉 <a href="{url}">اضغط هنا للانتقال إلى العرض</a>
 
-        🕐 {timestamp} UTC
-        📍 Source: {endpoint}
+        🕒 <code>{timestamp}</code> | 🛰️ <code>{source}</code>
+
+        Prices are extracted from promotion.content_snippet (JSON from
+        the embedded productSearchResponse payload).  If JSON parsing
+        fails, falls back to a simplified template using promotion.title
+        which may contain the old enriched format.
 
         Args:
             promotion: The Promotion to alert about.
@@ -101,23 +111,54 @@ class TelegramBotNotifier:
             NotificationResult with success flag, message_id, or error.
         """
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(promotion.first_seen_utc))
-        # Use final_url from promotion as source endpoint hint
+
+        # Source endpoint hint (truncated for display)
         source_hint = promotion.source_endpoint_id
         if len(source_hint) > 80:
             source_hint = source_hint[:77] + "..."
 
-        # Escape all user-provided content for HTML
+        # ── Prices from Promotion model ─────────────────────────────
+        deal_price_str: str | None = promotion.deal_price
+        list_price_str: str | None = promotion.list_price
+
+        # ── Escape user-provided content for HTML ────────────────────
         safe_title = html.escape(promotion.title)
         safe_url = html.escape(promotion.url)
         safe_source = html.escape(source_hint)
 
-        message = (
-            "🔥 <b>New Promo on Amazon Egypt!</b>\n\n"
-            f"<b>{safe_title}</b>\n"
-            f'<a href="{safe_url}">View Deal</a>\n\n'
-            f"🕐 {timestamp} UTC\n"
-            f"📍 Source: {safe_source}"
-        )
+        # ── Build the beautified Arabic template ─────────────────────
+        if deal_price_str:
+            # Full template with prices extracted from JSON
+            lines: list[str] = [
+                "🔥 <b>صيد جديد من عروض أمازون مصر!</b>",
+                "━━━━━━━━━━━━━━━━━━",
+                "📦 <b>المنتج:</b>",
+                f"<i>{safe_title}</i>",
+                "",
+                f"💰 <b>السعر في العرض:</b> <code>{deal_price_str}</code>",
+            ]
+            # List price with strikethrough (only if available)
+            if list_price_str:
+                safe_list = html.escape(list_price_str)
+                lines.append(
+                    f"<s>❌ <b>السعر الأصلي:</b> {safe_list}</s>"
+                )
+            lines.extend([
+                "━━━━━━━━━━━━━━━━━━",
+"🔗 <b>رابط العرض المباشر:</b>",
+                f'👉 <a href="{safe_url}">اضغط هنا للانتقال إلى العرض</a>',
+                "",
+                f"🕒 <code>{timestamp}</code> | 🛰️ <code>{safe_source}</code>",
+            ])
+            message = "\n".join(lines)
+        else:
+            # Fallback: simple template when prices not extractable
+            message = (
+                "🔥 <b>صيد جديد من عروض أمازون مصر!</b>\n\n"
+                f"<b>{safe_title}</b>\n"
+                f'<a href="{safe_url}">اضغط هنا للانتقال إلى العرض</a>\n\n'
+                f"🕒 <code>{timestamp}</code> | 🛰️ <code>{safe_source}</code>"
+            )
 
         payload = {
             "chat_id": self._chat_id,

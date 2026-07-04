@@ -26,11 +26,13 @@ from src.config.settings import settings
 logger = logging.getLogger(__name__)
 
 # ── Default Seed Targets ──────────────────────────────────────────────
+# NOTE: Amazon Egypt rotates category-specific deal URLs frequently.
+#       The canonical deals homepage (below) is the most reliable live entry point.
 
 SEED_TARGETS: list[dict] = [
     {
         "endpoint_id": "amz-eg-deals-page",
-        "url": "https://www.amazon.eg/-/en/Deals/b/?ie=UTF8&node=27335274031",
+        "url": "https://www.amazon.eg/-/en/deals",
         "parser_type": "html_dom",
         "poll_interval_seconds": 300,
         "active_hours_start": 6,  # UTC 06:00 = 08:00 Cairo
@@ -41,6 +43,10 @@ SEED_TARGETS: list[dict] = [
     },
     {
         "endpoint_id": "amz-eg-today-deals-ajax",
+        # TEMPORARILY DEACTIVATED (enabled=0): Amazon Egypt changed internal
+        # AJAX routing for /async/deals/ — this endpoint currently returns
+        # 404/no content. When a new working AJAX URL is discovered, update
+        # the url field and re-enable by setting enabled=1.
         "url": "https://www.amazon.eg/-/en/async/deals/v2/getDeals",
         "parser_type": "json_endpoint",
         "poll_interval_seconds": 300,
@@ -48,7 +54,7 @@ SEED_TARGETS: list[dict] = [
         "active_hours_end": 0,
         "impersonate_profile": "chrome124",
         "priority": 1,
-        "enabled": 1,
+        "enabled": 0,
     },
 ]
 
@@ -62,6 +68,19 @@ INSERT_SQL = """
         (:endpoint_id, :url, :parser_type, :poll_interval_seconds,
          :active_hours_start, :active_hours_end, :impersonate_profile,
          :priority, :enabled, 0.0, 0, 0.0)
+"""
+
+UPDATE_SQL = """
+    UPDATE target_endpoints
+    SET url = :url,
+        parser_type = :parser_type,
+        poll_interval_seconds = :poll_interval_seconds,
+        active_hours_start = :active_hours_start,
+        active_hours_end = :active_hours_end,
+        impersonate_profile = :impersonate_profile,
+        priority = :priority,
+        enabled = :enabled
+    WHERE endpoint_id = :endpoint_id
 """
 
 COUNT_SQL = "SELECT COUNT(*) as cnt FROM target_endpoints WHERE enabled = 1"
@@ -94,12 +113,25 @@ async def seed(display: bool = True) -> dict[str, int]:
         row = await cursor.fetchone()
         before_count = row[0] if row else 0
 
-        # Insert seed targets (INSERT OR IGNORE — safe to re-run)
+        # ── Upsert seed targets ───────────────────────────────────────
+        # Strategy:
+        #   1. UPDATE existing rows so URLs/enabled flags are refreshed.
+        #   2. INSERT OR IGNORE for rows that don't yet exist.
+        # This ensures running the seeding script corrects stale data even
+        # when target rows are already present in the database.
         for target in SEED_TARGETS:
-            cursor = await db.execute(INSERT_SQL, target)
-            if cursor.rowcount == 1:
+            # Attempt UPDATE first — if the endpoint_id exists, refresh all
+            # config fields (url, enabled, parser_type, intervals, etc.)
+            # but preserve runtime state (last_polled_utc, failures, cooldown).
+            update_cursor = await db.execute(UPDATE_SQL, target)
+            updated = update_cursor.rowcount  # -1 on SQLite, but we check below
+
+            # Now INSERT OR IGNORE for the case where the row didn't exist.
+            insert_cursor = await db.execute(INSERT_SQL, target)
+            if insert_cursor.rowcount == 1:
                 inserted += 1
             else:
+                # INSERT did nothing — row already existed (now updated above).
                 existing += 1
 
         await db.commit()

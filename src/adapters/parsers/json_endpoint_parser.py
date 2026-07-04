@@ -117,7 +117,9 @@ class JSONEndpointParser:
                 )
                 if candidate:
                     # Dedup by content fingerprint within this parse
-                    fp = candidate.content_fingerprint
+                    fp = hashlib.sha256(
+                        candidate.content_snippet.strip().lower().encode("utf-8")
+                    ).hexdigest()
                     if fp not in seen_fingerprints:
                         seen_fingerprints.add(fp)
                         candidates.append(candidate)

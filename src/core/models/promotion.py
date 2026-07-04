@@ -20,6 +20,8 @@ class Promotion:
         content_fingerprint: SHA256 of extracted promo-relevant DOM subtree (for dedup).
         first_seen_utc: Unix timestamp of first discovery.
         source_endpoint_id: Which TargetEndpoint produced this discovery.
+        deal_price: Deal price string (e.g., "EGP 9999.00") or None.
+        list_price: Original list price string (e.g., "EGP 11499.00") or None.
 
     Note:
         alert_sent state is managed externally via IStorageBackend.mark_alert_sent(),
@@ -32,6 +34,8 @@ class Promotion:
     content_fingerprint: str
     first_seen_utc: float
     source_endpoint_id: str
+    deal_price: str | None = None
+    list_price: str | None = None
 
     @staticmethod
     def compute_fingerprint(raw_html_snippet: str) -> str:

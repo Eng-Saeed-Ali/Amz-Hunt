@@ -92,7 +92,19 @@ class ScanOrchestrator:
         """
         # ── Phase 1: Scheduler Gate ──
         if not self._scheduler.is_active_now(endpoint):
+            logger.debug(
+                "Scheduler gate: %s is outside active hours — skipping",
+                endpoint.endpoint_id,
+            )
             return
+
+        logger.info(
+            "Scanning endpoint: %s → %s (parser=%s, impersonate=%s)",
+            endpoint.endpoint_id,
+            endpoint.url,
+            endpoint.parser_type,
+            endpoint.impersonate_profile,
+        )
 
         now_utc = time.time()
         discovered: list[Promotion] = []
@@ -102,6 +114,13 @@ class ScanOrchestrator:
             response = await self._http_client.fetch(
                 endpoint.url, impersonate=endpoint.impersonate_profile
             )
+            logger.info(
+                "HTTP %s | %d bytes | %.0fms | TLS=%s",
+                response.status_code,
+                len(response.body),
+                response.latency_ms,
+                response.tls_fingerprint_used,
+            )
 
             # ── Phase 3: Status Code Guard ──
             # Defensive: IHttpClient.fetch returns HttpResponse for all status
@@ -109,6 +128,11 @@ class ScanOrchestrator:
             # content. A non-200 response means we have no structured content
             # to parse — log and return early.
             if response.status_code != 200:
+                logger.warning(
+                    "Non-200 response for %s: HTTP %s — skipping parse",
+                    endpoint.endpoint_id,
+                    response.status_code,
+                )
                 await self._storage.log_scan(
                     ScanResult(
                         endpoint_id=endpoint.endpoint_id,
@@ -124,8 +148,15 @@ class ScanOrchestrator:
 
             # ── Phase 4: Parse ──
             candidates = await self._router.parse(endpoint, response)
+            logger.info(
+                "Parsed %d candidate(s) from %s",
+                len(candidates),
+                endpoint.endpoint_id,
+            )
 
             # ── Phase 5: Validate + Dedup → Promotion Creation ──
+            passed = 0
+            rejected = 0
             for candidate in candidates:
                 if self._validator.is_valid(candidate) and await self._dedup.is_new_promotion(candidate):
                     fingerprint = Promotion.compute_fingerprint(candidate.content_snippet)
@@ -136,18 +167,35 @@ class ScanOrchestrator:
                         content_fingerprint=fingerprint,
                         first_seen_utc=now_utc,
                         source_endpoint_id=endpoint.endpoint_id,
+                        deal_price=candidate.deal_price,
+                        list_price=candidate.list_price,
                     )
 
                     # ── Phase 6: Upsert + Enqueue ──
                     await self._storage.upsert_promotion(promotion)
                     await self._queue.enqueue(promotion)
                     discovered.append(promotion)
+                    passed += 1
+                else:
+                    rejected += 1
+
+            logger.info(
+                "Validate + Dedup: %d passed, %d rejected → %d NEW promotion(s) discovered",
+                passed,
+                rejected,
+                len(discovered),
+            )
 
             # ── Phase 7: Log Success ──
             outcome = (
                 ScanOutcome.SUCCESS_NEW_PROMO
                 if discovered
                 else ScanOutcome.SUCCESS_NO_CHANGE
+            )
+            logger.info(
+                "Scan complete for %s: %s",
+                endpoint.endpoint_id,
+                outcome.name,
             )
             await self._storage.log_scan(
                 ScanResult(
@@ -220,9 +268,18 @@ class ScanOrchestrator:
                 from IStorageBackend.get_active_targets() at startup by the
                 DI container or entry point.
         """
+        cycle = 0
         while True:
             for endpoint in endpoints:
                 await self._process_endpoint(endpoint)
                 # Anti-bot jitter: break uniform intervals to evade ML-based
                 # timing anomaly detection on Amazon's WAF.
-                await asyncio.sleep(random.uniform(45, 75))
+                sleep_duration = random.uniform(45, 75)
+                logger.info(
+                    "Next scan in ~%.0fs (cycle %d, %d endpoint(s))",
+                    sleep_duration,
+                    cycle,
+                    len(endpoints),
+                )
+                await asyncio.sleep(sleep_duration)
+            cycle += 1

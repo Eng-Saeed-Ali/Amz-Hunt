@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+
 from src.core.models.parsed_candidate import ParsedCandidate
+
+logger = logging.getLogger(__name__)
 
 
 class KeywordValidator:
@@ -17,7 +21,15 @@ class KeywordValidator:
     confidence_score based on DOM pattern matching. This validator provides
     an orthogonal signal — semantic content filtering — before the candidate
     reaches the dedup engine.
+
+    TEST_MODE (class attribute):
+        When True, is_valid() accepts ALL candidates with a non-empty title.
+        This bypasses keyword matching for pipeline integration testing.
+        Set to False for production operation.
     """
+
+    # ── Test Mode Gate ─────────────────────────────────────────────────
+    TEST_MODE: bool = True  # ✅ TEMPORARY: bypass keyword filter for initial testing
 
     # Arabic promo keywords (localised for Egypt / MENA e-commerce)
     ARABIC_KEYWORDS: tuple[str, ...] = (
@@ -49,6 +61,10 @@ class KeywordValidator:
         English keyword sets. Returns True if any keyword is found anywhere
         in the candidate's raw_title.
 
+        When TEST_MODE is True, all candidates with non-empty titles pass —
+        useful for pipeline integration testing when Amazon page content may
+        not contain the expected promo keywords.
+
         Args:
             candidate: The ParsedCandidate to validate (frozen dataclass,
                 read-only access — never mutated).
@@ -57,6 +73,10 @@ class KeywordValidator:
             True if the raw_title contains at least one recognised promo keyword;
             False if no keyword match is found (candidate is likely noise).
         """
+        # ── TEST_MODE bypass: accept any candidate with a non-empty title ──
+        if cls.TEST_MODE:
+            return bool(candidate.raw_title and len(candidate.raw_title.strip()) > 1)
+
         title_lower = candidate.raw_title.lower()
 
         for keyword in cls.ARABIC_KEYWORDS:
@@ -68,3 +88,12 @@ class KeywordValidator:
                 return True
 
         return False
+
+
+# ── Module-level warning when TEST_MODE is active ────────────────────
+# This fires on `import src.core.validator` — impossible to miss in logs.
+if KeywordValidator.TEST_MODE:
+    logger.warning(
+        "⚠️  KeywordValidator.TEST_MODE is ON — ALL candidates will pass validation "
+        "regardless of promo keyword presence. Set TEST_MODE=False for production."
+    )

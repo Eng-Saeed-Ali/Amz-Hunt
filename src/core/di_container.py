@@ -107,7 +107,7 @@ class DIContainer:
                 "json_endpoint": self._json_parser,
             }
         )
-        self._dedup = DedupEngine(storage_backend=self._storage)
+        self._dedup = DedupEngine(storage=self._storage)
         self._scheduler = ActiveHoursScheduler()
         self._validator = KeywordValidator()
         self._queue = NotificationQueue(notifier=self._telegram)

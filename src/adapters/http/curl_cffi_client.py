@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import TYPE_CHECKING
 
@@ -12,6 +13,8 @@ from src.adapters.http.header_pool import IMPERSONATE_PROFILES, get_headers
 from src.core.models.exceptions import HttpClientError
 from src.core.models.http_models import HttpResponse
 from src.core.ports.http_client import IHttpClient
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -83,6 +86,12 @@ class CurlCffiClient:
         if headers:
             request_headers.update(headers)
 
+        logger.debug(
+            "Fetching %s (impersonate=%s, timeout=%.0fs)",
+            url,
+            profile,
+            timeout,
+        )
         start_time = time.perf_counter()
         try:
             response = await session.get(

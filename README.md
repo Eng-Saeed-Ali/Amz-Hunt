@@ -37,6 +37,27 @@ The system deliberately bypasses traditional scraping bottlenecks (such as IP ba
 * **Defensive Pipeline Guards:** Pre-emptive HTTP Status Code guards protect the DOM parsers from crashing on 403/500 responses.
 
 ---
+### 📲 Real-Time Telegram Alerts (HTML Formatted)
+The system delivers cleanly formatted, conversion-optimized alerts directly to Telegram, complete with original/deal price comparisons and direct deep links:
+
+🔥 **صيد جديد من عروض أمازون مصر!**
+━━━━━━━━━━━━━━━━━━
+📦 **المنتج:**
+*Gaming Microphone with Noise Cancellation & Mute Button...*
+
+💰 **السعر في العرض:** `EGP 899.1`
+<s>❌ **السعر الأصلي:** EGP 999.0</s>
+━━━━━━━━━━━━━━━━━━
+🔗 **رابط العرض المباشر:**
+👉 [اضغط هنا للانتقال إلى العرض](#)
+🕒 `2026-07-04 20:35:50` | 🛰️ `amz-eg-deals-page`
+
+### 🧠 The Hybrid Parser & Dynamic Brace Counting
+To combat Amazon's frequent DOM structure changes and payload minification, the parser utilizes a **Dual-Phase Engine**:
+1. **Phase 0:** An `O(n)` dynamic balanced-brace counting algorithm with **String-Literal & Escape Character Awareness**. It extracts the embedded `productSearchResponse` JSON safely, ignoring random braces inside product titles, and remains completely immune to minification or key-reordering.
+2. **Phase 1:** A graceful fallback to standard BeautifulSoup4 DOM parsing if the embedded payload is absent.
+
+---
 
 ## 🚀 Getting Started | التشغيل السريع
 

@@ -20,6 +20,8 @@ class ParsedCandidate:
         parser_name: Which parser produced this candidate (e.g., "html_dom").
         confidence_score: 0.0–1.0 heuristic score assigned by the parser (1.0 = certain).
         source_endpoint_id: Which TargetEndpoint's page produced this candidate.
+        deal_price: Extracted deal price string (e.g., "EGP 9999.00") or None.
+        list_price: Extracted original list price string (e.g., "EGP 11499.00") or None.
     """
 
     candidate_id: str
@@ -29,3 +31,5 @@ class ParsedCandidate:
     parser_name: str
     confidence_score: float
     source_endpoint_id: str
+    deal_price: str | None = None
+    list_price: str | None = None
