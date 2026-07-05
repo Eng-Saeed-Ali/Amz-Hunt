@@ -4,12 +4,17 @@
   ║        Amazon Egypt Promotion Monitor & Alert System         ║
   ╚══════════════════════════════════════════════════════════════╝
 -->
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)">
-    <img alt="Amz-Hunt" width="480" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0ODAiIGhlaWdodD0iMTIwIiB2aWV3Qm94PSIwIDAgNDgwIDEyMCI+PGRlZnM+PGZpbHRlciBpZD0iZ3ciPjxmZURyb3BTaGFkb3cgZHg9IjIiIGR5PSIyIiBzdGREZXZpYXRpb249IjMiIGZsb29kLW9wYWNpdHk9IjAuMyIvPjwvZmlsdGVyPjwvZGVmcz48cmVjdCB3aWR0aD0iNDgwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzBkMTExNyIgcng9IjE0Ii8+PHRleHQgeD0iMjQwIiB5PSI3MCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI0MiIgZmlsbD0iIzAwZmY0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsdGVyPSJ1cmwoI2d3KSIgZm9udC13ZWlnaHQ9ImJvbGQiPsOxIE1aLUhVTlQ8L3RleHQ+PHRleHQgeD0iMjQwIiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM3M2E3NzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFtYXpvbiBFZ3lwdCBQcm9tbyBNb25pdG9yPC90ZXh0Pjwvc3ZnPg==">
-  </picture>
-</p>
+<div align="center">
+
+# 🏹 AMZ-HUNT
+**Amazon Egypt Promotion Monitor & Alert System**
+
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker Ready](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+
+---
+</div>
 
 <p align="center">
   <strong>Zero-Budget • Zero-API • TLS-Impersonated</strong><br>
