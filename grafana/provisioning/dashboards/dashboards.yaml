@@ -1,0 +1,32 @@
+# =============================================================================
+# Amz-Hunt — Grafana Dashboard Provisioning
+# =============================================================================
+# Grafana watches /etc/grafana/provisioning/dashboards/ at startup and
+# auto-loads dashboard JSON files from the configured path(s).
+#
+# This config tells Grafana to load our pre-baked amz-hunt.json dashboard
+# from disk — no manual import needed.
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  - name: "Amz-Hunt Default Dashboards"
+    orgId: 1
+    folder: ""                        # Load into the General folder (top-level)
+    folderUid: ""
+    type: file
+    disableDeletion: true             # Prevent accidental deletion via UI
+    allowUiUpdates: true              # Allow editing locally (copied/saved as new)
+    updateIntervalSeconds: 10         # Re-scan filesystem every 10s for changes
+    editable: false                   # Pre-baked dashboard is read-only (preserves portfolio look)
+
+    options:
+      # Path inside the Grafana container where dashboard JSONs are mounted.
+      # In docker-compose.override.yml, we bind-mount ./grafana/dashboards to
+      # /var/lib/grafana/dashboards (an independent path outside the ro-mounted
+      # provisioning directory).
+      path: /var/lib/grafana/dashboards
+
+      # Folders from this path are NOT created as separate Grafana folder entities.
+      foldersFromFilesStructure: false

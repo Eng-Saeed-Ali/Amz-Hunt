@@ -1,0 +1,36 @@
+# =============================================================================
+# Amz-Hunt — Grafana Datasource Provisioning (Prometheus)
+# =============================================================================
+# Grafana's built-in provisioning system watches /etc/grafana/provisioning/
+# at startup and auto-configures datasources defined here.
+#
+# This file ensures Prometheus is available as the DEFAULT datasource the
+# moment Grafana boots — no manual "Add data source" wizard needed.
+# =============================================================================
+
+apiVersion: 1
+
+# ── List of datasources to insert/update ────────────────────────────────────
+# Each datasource is identified by its "name" field. On every boot, Grafana
+# upserts: if a datasource with this name exists, it's updated; if not, it's
+# created. This is idempotent — safe to restart Grafana repeatedly.
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy                     # Grafana backend proxies queries (works across Docker networks)
+    url: http://prometheus:9090       # Docker DNS resolves container name → internal IP
+    isDefault: true                   # All dashboards default to this datasource unless overridden
+    editable: false                   # Locked — preserves portfolio demo integrity
+
+    # ── JSON Data (Prometheus-specific settings) ────────────────────────────
+    jsonData:
+      timeInterval: "5s"              # Matches the Prometheus scrape_interval for precise step alignment
+      queryTimeout: "30s"
+      httpMethod: "POST"              # POST avoids URL-length limits for complex PromQL queries
+      prometheusType: "Prometheus"
+      prometheusVersion: "2.52.0"
+      cacheLevel: "Low"               # Minimal caching — shows live data for portfolio screenshots
+      disableMetricsMatching: false
+
+    # ── Secure JSON Data (empty — no auth needed, Prometheus has no auth by default) ──
+    secureJsonData: {}

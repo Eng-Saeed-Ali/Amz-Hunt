@@ -21,6 +21,7 @@ from src.config.settings import settings
 from src.core.di_container import DIContainer
 from src.core.metrics import start_metrics_server
 from src.core.shutdown import GracefulShutdown
+from scripts.seed_targets import seed as seed_targets
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ async def main() -> None:
         4. Start NotificationQueue.worker() as a background asyncio task
         5. Launch orchestrator.run_forever(endpoints) as a background task
         6. Wait for SIGINT/SIGTERM via GracefulShutdown
-        7. Cancel orchestrator + worker tasks, close DB connection
+        7. Cancel orchestrator + worker tasks, close all adapter resources
     """
     _configure_logging()
     logger.info("=== Amz-Hunt Monitor Starting ===")
@@ -70,13 +71,19 @@ async def main() -> None:
     # ── 2. Fetch active polling targets ───────────────────────────────
     endpoints = await container.storage.get_active_targets()
     if not endpoints:
-        logger.warning(
-            "No active TargetEndpoints found in the database. "
-            "Run 'python -m scripts.seed_targets' to seed default targets, "
-            "then restart the monitor."
+        logger.info(
+            "No active TargetEndpoints found — auto-seeding default targets..."
         )
-        await container.storage.close()
-        return
+        await seed_targets(display=False)
+        endpoints = await container.storage.get_active_targets()
+        if not endpoints:
+            logger.error(
+                "Auto-seed completed but no active targets found. "
+                "This should never happen — check seed_targets.py SEED_TARGETS list."
+            )
+            await container.close()
+            return
+        logger.info("Auto-seed complete — %d target(s) loaded", len(endpoints))
 
     logger.info("Loaded %d active TargetEndpoint(s)", len(endpoints))
     for ep in endpoints:
@@ -89,6 +96,8 @@ async def main() -> None:
         )
 
     # ── 3. Start Prometheus metrics HTTP server ───────────────────────
+    # NOTE: start_http_server() spawns a daemon thread that is
+    # auto-cleaned on process exit — no explicit teardown needed.
     start_metrics_server(9090)
     logger.info("Prometheus metrics endpoint started on http://0.0.0.0:9090/metrics")
 
@@ -118,10 +127,10 @@ async def main() -> None:
     orchestrator_task.cancel()
     worker_task.cancel()
 
-    # Wait for tasks to acknowledge cancellation (with a grace period)
+    # Wait for tasks to acknowledge cancellation (with a configurable grace period)
     done, pending = await asyncio.wait(
         [orchestrator_task, worker_task],
-        timeout=10.0,  # 10-second grace period for in-flight work
+        timeout=settings.SHUTDOWN_GRACE_PERIOD,
     )
     if pending:
         logger.warning(
@@ -140,9 +149,9 @@ async def main() -> None:
         except Exception:
             logger.exception("Task raised unexpected exception during teardown")
 
-    # Close the database connection
-    await container.storage.close()
-    logger.info("Database connection closed")
+    # Close all adapter resources (telegram session, http client, storage)
+    await container.close()
+    logger.info("All adapter resources released")
 
     logger.info("=== Amz-Hunt Monitor Shutdown Complete ===")
 

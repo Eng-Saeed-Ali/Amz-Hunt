@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import TYPE_CHECKING
@@ -42,6 +43,9 @@ class CurlCffiClient:
         self._sessions: dict[str, curl_requests.AsyncSession] = {}
         self._profile_order = IMPERSONATE_PROFILES.copy()
         self._current_profile_index = 0
+
+        # Protect concurrent session creation and rotation (multiple polling tasks)
+        self._lock = asyncio.Lock()
 
         # Metrics counters
         self._total_requests = 0
@@ -135,10 +139,11 @@ class CurlCffiClient:
         Returns:
             The new impersonate profile string.
         """
-        self._current_profile_index = (self._current_profile_index + 1) % len(self._profile_order)
-        new_profile = self._profile_order[self._current_profile_index]
-        self._fingerprint_rotations += 1
-        return new_profile
+        async with self._lock:
+            self._current_profile_index = (self._current_profile_index + 1) % len(self._profile_order)
+            new_profile = self._profile_order[self._current_profile_index]
+            self._fingerprint_rotations += 1
+            return new_profile
 
     def session_metrics(self) -> dict[str, int]:
         """Return session-level telemetry snapshot.
@@ -164,12 +169,19 @@ class CurlCffiClient:
     # ── Internal Helpers ──────────────────────────────────────────────
 
     async def _get_session(self, profile: str) -> curl_requests.AsyncSession:
-        """Get or create an AsyncSession for the given profile."""
+        """Get or create an AsyncSession for the given profile.
+
+        Uses an asyncio.Lock to prevent race conditions when multiple
+        polling tasks concurrently create sessions or rotate profiles.
+        """
         if profile not in self._sessions:
-            # Create session with default headers from header_pool
-            session = curl_requests.AsyncSession()
-            session.headers.update(get_headers(profile))
-            self._sessions[profile] = session
+            async with self._lock:
+                # Double-checked under lock — another task may have created it
+                # while we were waiting
+                if profile not in self._sessions:
+                    session = curl_requests.AsyncSession()
+                    session.headers.update(get_headers(profile))
+                    self._sessions[profile] = session
         return self._sessions[profile]
 
     async def close(self) -> None:

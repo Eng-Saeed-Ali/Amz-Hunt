@@ -9,8 +9,18 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Valid impersonate profiles supported by curl_cffi
+VALID_IMPERSONATE_PROFILES: frozenset[str] = frozenset({
+    "chrome124", "chrome120", "chrome123", "chrome110",
+    "chrome99", "chrome100", "chrome101", "chrome107",
+    "chrome116", "chrome119", "edge99", "edge101",
+    "safari15_5", "safari17_0", "firefox120",
+})
 
 
 class Settings(BaseSettings):
@@ -44,6 +54,21 @@ class Settings(BaseSettings):
 
     # ── HTTP Client ───────────────────────────────────────────────────
     DEFAULT_IMPERSONATE_PROFILE: str = "chrome124"
+
+    # ── Shutdown ──────────────────────────────────────────────────────
+    SHUTDOWN_GRACE_PERIOD: float = 10.0
+    """Maximum seconds to wait for in-flight tasks to finish on shutdown."""
+
+    @field_validator("DEFAULT_IMPERSONATE_PROFILE")
+    @classmethod
+    def validate_impersonate(cls, v: str) -> str:
+        """Reject unknown curl_cffi impersonate profiles at config-load time."""
+        if v not in VALID_IMPERSONATE_PROFILES:
+            raise ValueError(
+                f"DEFAULT_IMPERSONATE_PROFILE={v!r} is not a valid curl_cffi target. "
+                f"Valid options: {sorted(VALID_IMPERSONATE_PROFILES)}"
+            )
+        return v
 
 
 # Module-level singleton — import this everywhere

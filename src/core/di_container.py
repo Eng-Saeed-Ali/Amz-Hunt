@@ -124,3 +124,19 @@ class DIContainer:
         )
 
         return self._orchestrator
+
+    async def close(self) -> None:
+        """Release all adapter resources (DB connections, HTTP sessions, notification sessions).
+
+        Must be called during graceful shutdown after cancelling all async tasks.
+        Closes resources in reverse-initialisation order:
+          1. Telegram aiohttp session
+          2. HTTP client curl_cffi session
+          3. SQLite database connection
+        """
+        if self._telegram is not None:
+            await self._telegram.close()
+        if self._http_client is not None:
+            await self._http_client.close()
+        if self._storage is not None:
+            await self._storage.close()

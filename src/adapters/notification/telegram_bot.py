@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import html
 import json
+import logging
 import time
 from typing import TYPE_CHECKING
 
@@ -17,6 +18,8 @@ from src.core.ports.notification import INotificationService
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
+logger = logging.getLogger(__name__)
 
 
 class TelegramBotNotifier:
@@ -40,9 +43,9 @@ class TelegramBotNotifier:
 
     # Severity emoji mapping
     SEVERITY_EMOJI: dict[str, str] = {
-        "info": "ℹ️",
-        "warning": "⚠️",
-        "critical": "🚨",
+        "info": "\u2139\ufe0f",
+        "warning": "\u26a0\ufe0f",
+        "critical": "\U0001f6a8",
     }
 
     def __init__(
@@ -145,7 +148,7 @@ class TelegramBotNotifier:
                 )
             lines.extend([
                 "━━━━━━━━━━━━━━━━━━",
-"🔗 <b>رابط العرض المباشر:</b>",
+                "🔗 <b>رابط العرض المباشر:</b>",
                 f'👉 <a href="{safe_url}">اضغط هنا للانتقال إلى العرض</a>',
                 "",
                 f"🕒 <code>{timestamp}</code> | 🛰️ <code>{safe_source}</code>",
@@ -227,7 +230,7 @@ class TelegramBotNotifier:
         Returns:
             NotificationResult with success flag, message_id, or error.
         """
-        emoji = self.SEVERITY_EMOJI.get(severity.lower(), "⚠️")
+        emoji = self.SEVERITY_EMOJI.get(severity.lower(), "\u26a0\ufe0f")
         severity_label = severity.capitalize()
 
         safe_message = html.escape(message)
@@ -268,7 +271,7 @@ class TelegramBotNotifier:
             try:
                 async with session.post(url, json=payload) as response:
                     response_text = await response.text()
-                    
+
                     try:
                         data = json.loads(response_text)
                     except json.JSONDecodeError as e:
@@ -316,7 +319,8 @@ class TelegramBotNotifier:
                     await asyncio.sleep(delay)
                     continue
             except Exception as e:
-                # Unexpected error — don't retry
+                # Unexpected error — log the full traceback, then return gracefully
+                logger.exception("Unexpected error in Telegram notification %s", method)
                 return NotificationResult(
                     success=False,
                     channel="telegram",

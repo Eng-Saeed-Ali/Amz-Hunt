@@ -1,0 +1,111 @@
+# =============================================================================
+# Amz-Hunt — Docker Compose Override (Visual Monitoring Stack)
+# =============================================================================
+# This file is AUTO-MERGED by Docker Compose with docker-compose.yml when
+# running `docker compose up -d` from the project root.
+#
+# It adds TWO optional, zero-cost, local-only services:
+#   - Prometheus (metrics scraper)  → port 9091
+#   - Grafana    (dashboard server) → port 3000
+#
+# ⚠️  PRODUCTION NOTE:
+#     These services are DESIGNED FOR LOCAL PORTFOLIO DEMONSTRATION ONLY.
+#     To deploy production-only (VPS), run:
+#         docker compose up -d amz-hunt-monitor
+#     This skips Prometheus + Grafana entirely — zero overhead.
+#
+# All images are OSS (Apache 2.0 / AGPLv3), pulled from Docker Hub.
+# Total additional cost: $0.00
+# =============================================================================
+
+services:
+  # ── Prometheus ─────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: amz-hunt-prometheus
+    restart: unless-stopped
+
+    ports:
+      - "9091:9090"  # Offset to avoid clash with amz-hunt-monitor's own :9090
+
+    volumes:
+      # Mount the Prometheus scrape configuration file
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Persistent Prometheus TSDB (optional — survives restarts)
+      - prometheus_data:/prometheus
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--storage.tsdb.retention.time=72h"  # 3 days of data for demos
+      - "--web.enable-admin-api"             # Snapshot/delete for resetting demo data
+
+    # Minimal resource footprint for local/dev use
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # ── Grafana ────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: amz-hunt-grafana
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      # ── Anonymous Admin Access (LOCAL PORTFOLIO MODE ONLY) ──────────────
+      # Enables instant dashboard access at http://localhost:3000 — no login
+      # screen, no credentials. This is INTENTIONAL for portfolio screenshots
+      # and local demos. NEVER enable these on a publicly-exposed instance.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_BASIC_ENABLED: "false"        # Disable login prompt entirely
+
+      # ── Dashboard Settings ──────────────────────────────────────────────
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: "/var/lib/grafana/dashboards/amz-hunt.json"
+
+      # ── Security (local-only hardening) ─────────────────────────────────
+      GF_SERVER_PROTOCOL: "http"
+      GF_SERVER_ENFORCE_DOMAIN: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+
+    volumes:
+      # Auto-provision Prometheus as the default datasource
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      # Auto-load the pre-baked Amz-Hunt dashboard JSON
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      # Persistent Grafana config (dashboards, preferences)
+      - grafana_data:/var/lib/grafana
+
+    depends_on:
+      - prometheus
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+# ── Named Volumes (Survive docker compose down unless -v flag used) ─────────
+volumes:
+  prometheus_data:
+    name: amz-hunt-prometheus-data
+  grafana_data:
+    name: amz-hunt-grafana-data

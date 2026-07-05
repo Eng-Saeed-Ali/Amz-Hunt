@@ -1,0 +1,48 @@
+# =============================================================================
+# Amz-Hunt — Prometheus Scrape Configuration
+# =============================================================================
+# This config targets the amz-hunt-monitor's /metrics endpoint on port 9090.
+# The monitor exposes 6 metric families (Counters, Gauge, Histogram) defined
+# in src/core/metrics.py — all with the amz_hunt_ prefix.
+#
+# Scrape interval: 5 seconds (tight for demo data density in portfolio screenshots)
+# =============================================================================
+
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+  # ── External labels attached to every scraped metric ──────────────────────
+  external_labels:
+    env: "portfolio"
+    project: "amz-hunt"
+    stack: "visual-monitoring"
+
+scrape_configs:
+  - job_name: "amz-hunt"
+    scrape_interval: 5s
+    scrape_timeout: 4s
+
+    # ── Labels applied to all metrics from this job ─────────────────────────
+    # These allow Grafana to filter/group by job name and environment.
+    # Combined with external_labels above, every metric carries:
+    #   job="amz-hunt", env="portfolio", project="amz-hunt"
+    metrics_path: "/metrics"
+
+    static_configs:
+      - targets:
+          - "amz-hunt-monitor:9090"
+        labels:
+          job: "amz-hunt"
+          env: "portfolio"
+
+  # ── Optional: Prometheus self-monitoring ──────────────────────────────────
+  # Prometheus scrapes itself so we can verify the scraper is healthy.
+  - job_name: "prometheus"
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - "localhost:9090"
+        labels:
+          job: "prometheus"
+          env: "portfolio"
