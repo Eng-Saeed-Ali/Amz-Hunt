@@ -8,6 +8,7 @@
 | **Phase 2** — Full Wiring | ✅ Complete | 6 Adapter Implementations (SQLite, curl_cffi, HTML/JSON Parsers, Telegram, Headers, Migrations) |
 | **Phase 3** — Intelligence | ✅ Complete | 5 Core Domain Services, Orchestrator, DI Container, Config, Shutdown, Entry Point, Seed Script |
 | **Phase 4** — Containerization | ✅ Complete | Multi-stage Dockerfile, docker-compose.yml, .dockerignore, non-root user, HEALTHCHECK |
+| **Phase 5** — Resilience & Production | ✅ Complete | Docker log rotation (json-file: max-size 10m / max-file 3), deploy.sh (git pull → .env check → build → image prune), vps_healthcheck.sh (docker inspect health-check → auto-restart → incident log → crontab docs) |
 
 ## Launch Commands
 
@@ -23,14 +24,16 @@ python -m scripts.seed_targets
 python -m scripts.run_monitor
 ```
 
-## What Remains (Phase 5+ — Resilience & Production)
+## What Remains (Phase 6+ — Observability & Beyond)
 
 - [x] Docker containerization (Phases 1–4 complete)
 - [x] Minimal pytest unit test suite created (promotion fingerprint + scheduler logic)
+- [x] Docker log rotation — json-file driver (max-size: 10m, max-file: 3)
+- [x] Automated deployment script (deploy.sh) with strict error handling
+- [x] VPS health-check script (vps_healthcheck.sh) with auto-restart + incident logging
 - [ ] Expand unit test coverage for remaining core services
 - [ ] CI/CD pipeline configuration
-- [ ] Exponential backoff & circuit breaker (Phase 5)
-- [ ] Prometheus metrics & Grafana dashboard (Phase 6)
+- [ ] Prometheus metrics exporter & monitoring dashboard (Phase 6)
 - [ ] Multi-domain marketplace support — KSA, UAE (Phase 7)
 
 ---
@@ -311,11 +314,40 @@ docker compose down       # Graceful shutdown (SIGTERM → drain queue → close
 
 ---
 
-## 🚀 NEXT PHASE: Phase 5 - VPS Deployment & Production Monitoring
+## - [x] Phase 5 Completed: VPS Deployment & Production Monitoring
 
-- **Current State:** Core application is 100% stable, fully integrated, and completely containerized via Docker Compose with SQLite WAL multi-file persistence mapped to `./data`.
+### Deliverables
+
+| File | Purpose | Key Details |
+|------|---------|-------------|
+| `docker-compose.yml` (updated) | Docker log rotation | Added `logging` block: `json-file` driver, `max-size: "10m"`, `max-file: "3"` — prevents 24/7 scraping logs from saturating VPS disk (30 MB hard ceiling) |
+| `deploy.sh` | Automated VPS deployment | Strict `set -e` error handling; 4-step pipeline: `git pull origin main` → `.env` existence check (warn + exit if missing) → `docker compose up -d --build` → `docker image prune -f` |
+| `scripts/vps_healthcheck.sh` | Lightweight health-check + auto-restart | Two-stage `docker inspect` verification: (1) container running, (2) health status healthy. Auto-restarts via `docker compose restart amz-hunt-monitor` on failure. Logs incidents with UTC timestamps to `data/vps_health_incidents.log`. Includes crontab setup instructions (`*/5 * * * *`). |
+
+### Phase 5 Validation Checklist — ALL COMPLETE ✅
+
+- [x] Docker log rotation configured (json-file, 10 MB × 3 files = 30 MB max)
+- [x] `deploy.sh` automates git pull → .env validation → docker compose up --build → image prune
+- [x] `vps_healthcheck.sh` verifies container running + healthy, auto-restarts on failure
+- [x] Incident logging with UTC timestamps to `data/vps_health_incidents.log`
+- [x] Crontab documentation embedded in health-check script comments
+- [x] No core Python code in `src/` modified — all changes are DevOps/infrastructure only
+
+---
+
+## 🚀 NEXT PHASE: Phase 6 - Observability (Prometheus Metrics Exporter)
+
+- **Current State:** Core application is 100% stable, fully integrated, completely containerized via Docker Compose with log rotation and automated deployment. The health-check script provides external uptime monitoring via cron. However, there is currently **zero internal observability** — no metrics endpoint to track scan throughput, error rates, or circuit-breaker activity over time.
 - **Next Action Items for the incoming Agent:**
-  1. Set up a secure automated deployment script (e.g., `deploy.sh`) for target VPS environments.
-  2. Configure Docker automated log rotation (`json-file` driver with max-size/max-file limits) to avoid disk saturation from 24/7 scraping logs.
-  3. Implement a lightweight production health-check script or uptime monitoring alert mechanism.
+  1. Implement a lightweight Prometheus Metrics Exporter (e.g., using the `prometheus_client` Python library — MIT-licensed, zero-cost) exposing a `/metrics` HTTP endpoint on a configurable port (e.g., `:9090` inside the container).
+  2. Track at minimum these metric families:
+     - **Counter:** `amz_hunt_scans_total` (labels: `endpoint_id`, `outcome` — SUCCESS, BLOCKED_403, BLOCKED_CAPTCHA, BLOCKED_THROTTLED, ERROR_CONNECTION, ERROR_TIMEOUT, ERROR_PARSE)
+     - **Counter:** `amz_hunt_promotions_discovered_total` (new promotions found, never-before-seen)
+     - **Counter:** `amz_hunt_notifications_sent_total` (labels: `status` — success/failed)
+     - **Counter:** `amz_hunt_circuit_breaker_trips_total` (labels: `endpoint_id` — each time an endpoint enters cooldown)
+     - **Gauge:** `amz_hunt_circuit_breaker_active` (current number of endpoints in cooldown)
+     - **Histogram:** `amz_hunt_scan_latency_seconds` (request latency distribution, buckets: 0.5, 1, 2.5, 5, 10, 30)
+  3. Wire the metrics exporter into `run_monitor.py` or the `DIContainer` — it must start alongside the orchestrator without blocking it (separate asyncio task or thread).
+  4. Update `docker-compose.yml` to expose the metrics port (e.g., `9090:9090`) so an external Prometheus server (or VPS-hosted Prometheus) can scrape it.
+  5. Document how to configure a Prometheus scrape target and optional Grafana dashboard JSON in a new `docs/observability.md` guide.
 
