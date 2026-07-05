@@ -412,8 +412,6 @@ docker compose down -v       # Tear down + wipe Prometheus TSDB (clean restart)
 
 ## 📸 Portfolio Screenshots
 
-Place your screenshots in `docs/images/` and they'll render automatically when viewed on GitHub. Below are the recommended captures with placeholder references:
-
 ### 1. Grafana Dashboard — Full Overview
 
 ![Grafana Dashboard Overview](docs/images/grafana-dashboard-overview.png)
@@ -432,13 +430,11 @@ Place your screenshots in `docs/images/` and they'll render automatically when v
 
 *A real alert delivered to Telegram — beautified Arabic HTML template with product title, deal price, list price with strikethrough, and direct Amazon link.*
 
-### 4. Prometheus Metrics Raw
+### 4. Prometheus Raw Metrics
 
 ![Prometheus Metrics](docs/images/prometheus-metrics.png)
 
 *The `/metrics` endpoint showing all 6 metric families in Prometheus text exposition format — the raw data feeding the Grafana dashboard.*
-
-> **Screenshot tips:** Let the monitor run 10–15 minutes to build data density. Open Grafana at 1920×1080, press `F11` for full-screen. Use DevTools screenshot (`Ctrl+Shift+P` → "Capture full size screenshot") for pixel-perfect captures.
 
 ---
 
