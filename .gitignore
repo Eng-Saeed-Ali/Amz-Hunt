@@ -52,3 +52,4 @@ data/*.sqlite3
 *.log
 logs/
 
+Agent_Handoff.md
