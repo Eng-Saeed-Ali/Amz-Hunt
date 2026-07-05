@@ -35,3 +35,13 @@ services:
     # Ensure .env exists before starting (copy from .env.example and edit).
     env_file:
       - .env
+
+    # ── Log Rotation (CRITICAL for 24/7 VPS) ──────────────────────────────────
+    # json-file driver with size/quantity caps prevents the 24/7 scraping logs
+    # from saturating the VPS disk over weeks/months of continuous operation.
+    # 10 MB per file × 3 files = 30 MB max disk usage for all container logs.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
