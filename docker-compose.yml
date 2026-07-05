@@ -36,6 +36,12 @@ services:
     env_file:
       - .env
 
+    # ── Prometheus Metrics Endpoint ──────────────────────────────────────────
+    # Exposes the /metrics HTTP endpoint on port 9090 for external Prometheus
+    # scraping (VPS-hosted Prometheus, Grafana Cloud, or local dev scraping).
+    ports:
+      - "9090:9090"
+
     # ── Log Rotation (CRITICAL for 24/7 VPS) ──────────────────────────────────
     # json-file driver with size/quantity caps prevents the 24/7 scraping logs
     # from saturating the VPS disk over weeks/months of continuous operation.

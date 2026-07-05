@@ -8,6 +8,13 @@ import random
 import time
 
 from src.core.dedup_engine import DedupEngine
+from src.core.metrics import (
+    circuit_breaker_active,
+    circuit_breaker_trips_total,
+    promotions_discovered_total,
+    scan_latency_seconds,
+    scans_total,
+)
 from src.core.models.exceptions import AmzHuntError
 from src.core.models.parsed_candidate import ParsedCandidate
 from src.core.models.promotion import Promotion
@@ -133,10 +140,39 @@ class ScanOrchestrator:
                     endpoint.endpoint_id,
                     response.status_code,
                 )
+                # ── Determine outcome and circuit-breaker trip ───────────
+                non200_outcome = ScanOutcome.ERROR_PARSE
+                is_block = False
+                if response.status_code == 403:
+                    non200_outcome = ScanOutcome.BLOCKED_403
+                    is_block = True
+                elif response.status_code == 429:
+                    non200_outcome = ScanOutcome.BLOCKED_THROTTLED
+                    is_block = True
+                elif response.status_code == 503:
+                    # CAPTCHA-like: Amazon sometimes serves 503 with captcha body
+                    non200_outcome = ScanOutcome.BLOCKED_CAPTCHA
+                    is_block = True
+
+                # ── Metrics: scan outcome counter ────────────────────────
+                scans_total.labels(
+                    endpoint_id=endpoint.endpoint_id,
+                    outcome=non200_outcome.name,
+                ).inc()
+
+                # ── Metrics: circuit-breaker trip ────────────────────────
+                if is_block:
+                    circuit_breaker_trips_total.labels(
+                        endpoint_id=endpoint.endpoint_id,
+                    ).inc()
+                    # Increment the active gauge — will be decremented when
+                    # cooldown expires (future full circuit-breaker impl).
+                    circuit_breaker_active.inc()
+
                 await self._storage.log_scan(
                     ScanResult(
                         endpoint_id=endpoint.endpoint_id,
-                        outcome=ScanOutcome.ERROR_PARSE,
+                        outcome=non200_outcome,
                         timestamp_utc=now_utc,
                         http_status_code=response.status_code,
                         error_message=f"Unexpected HTTP {response.status_code}",
@@ -197,6 +233,20 @@ class ScanOrchestrator:
                 endpoint.endpoint_id,
                 outcome.name,
             )
+
+            # ── Metrics: scan outcome + promotions discovered + latency ──
+            scans_total.labels(
+                endpoint_id=endpoint.endpoint_id,
+                outcome=outcome.name,
+            ).inc()
+            if discovered:
+                promotions_discovered_total.labels(
+                    endpoint_id=endpoint.endpoint_id,
+                ).inc(len(discovered))
+            scan_latency_seconds.labels(
+                endpoint_id=endpoint.endpoint_id,
+            ).observe(response.latency_ms / 1000.0)
+
             await self._storage.log_scan(
                 ScanResult(
                     endpoint_id=endpoint.endpoint_id,
@@ -222,6 +272,12 @@ class ScanOrchestrator:
             elif type(e).__name__ == "ParserError":
                 outcome = ScanOutcome.ERROR_PARSE
 
+            # ── Metrics: scan outcome counter for domain errors ────────
+            scans_total.labels(
+                endpoint_id=endpoint.endpoint_id,
+                outcome=outcome.name,
+            ).inc()
+
             await self._storage.log_scan(
                 ScanResult(
                     endpoint_id=endpoint.endpoint_id,
@@ -241,6 +297,13 @@ class ScanOrchestrator:
             logger.exception(
                 "Unhandled error scanning %s", endpoint.endpoint_id
             )
+
+            # ── Metrics: scan outcome counter for unhandled errors ────
+            scans_total.labels(
+                endpoint_id=endpoint.endpoint_id,
+                outcome=ScanOutcome.ERROR_UNKNOWN.name,
+            ).inc()
+
             await self._storage.log_scan(
                 ScanResult(
                     endpoint_id=endpoint.endpoint_id,

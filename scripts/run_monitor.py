@@ -19,6 +19,7 @@ import logging
 
 from src.config.settings import settings
 from src.core.di_container import DIContainer
+from src.core.metrics import start_metrics_server
 from src.core.shutdown import GracefulShutdown
 
 logger = logging.getLogger(__name__)
@@ -87,28 +88,32 @@ async def main() -> None:
             ep.poll_interval_seconds,
         )
 
-    # ── 3. Start NotificationQueue worker as background task ──────────
+    # ── 3. Start Prometheus metrics HTTP server ───────────────────────
+    start_metrics_server(9090)
+    logger.info("Prometheus metrics endpoint started on http://0.0.0.0:9090/metrics")
+
+    # ── 4. Start NotificationQueue worker as background task ──────────
     worker_task = asyncio.create_task(
         container.queue.worker(),
         name="notification_worker",
     )
     logger.info("Notification worker started")
 
-    # ── 4. Set up graceful shutdown ───────────────────────────────────
+    # ── 5. Set up graceful shutdown ───────────────────────────────────
     shutdown = GracefulShutdown()
     shutdown.register_signals()
 
-    # ── 5. Launch orchestrator polling loop ───────────────────────────
+    # ── 6. Launch orchestrator polling loop ───────────────────────────
     orchestrator_task = asyncio.create_task(
         orchestrator.run_forever(endpoints),
         name="orchestrator_loop",
     )
     logger.info("Orchestrator polling loop started — monitoring %d endpoints", len(endpoints))
 
-    # ── 6. Wait for shutdown signal ───────────────────────────────────
+    # ── 7. Wait for shutdown signal ───────────────────────────────────
     await shutdown.wait_for_shutdown()
 
-    # ── 7. Graceful teardown ──────────────────────────────────────────
+    # ── 8. Graceful teardown ──────────────────────────────────────────
     logger.info("Shutdown signal received — cancelling tasks...")
     orchestrator_task.cancel()
     worker_task.cancel()

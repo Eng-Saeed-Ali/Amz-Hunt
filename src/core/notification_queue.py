@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from src.core.metrics import notifications_sent_total
 from src.core.models.exceptions import NotificationError
 from src.core.models.promotion import Promotion
 from src.core.ports.notification import INotificationService
@@ -78,16 +79,22 @@ class NotificationQueue:
             promotion = await self._queue.get()
             try:
                 await self._notifier.send_promo_alert(promotion)
+                # ── Metrics: successful notification delivery ────────────
+                notifications_sent_total.labels(status="success").inc()
             except NotificationError:
                 logger.warning(
                     "Notification delivery failed for promotion %s "
                     "(adapter retries exhausted). Skipping.",
                     promotion.promotion_id,
                 )
+                # ── Metrics: failed notification (adapter exhausted) ──────
+                notifications_sent_total.labels(status="failed").inc()
             except Exception:
                 logger.exception(
                     "Unexpected error delivering notification for promotion %s.",
                     promotion.promotion_id,
                 )
+                # ── Metrics: failed notification (unexpected error) ───────
+                notifications_sent_total.labels(status="failed").inc()
             finally:
                 self._queue.task_done()
