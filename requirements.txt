@@ -26,3 +26,9 @@ pydantic-settings>=2.0.0,<3.0.0
 # ── Async HTTP (Telegram Bot API) ──────────────────────────────────────────
 # Lightweight async HTTP client for Telegram Bot API calls.
 aiohttp>=3.9.0,<4.0.0
+
+# ── Development / Testing ──────────────────────────────────────────────────
+# Pytest is the project's test runner. Not required at runtime but listed
+# here so contributors can `pip install -r requirements.txt` and run tests
+# immediately without a separate dev-requirements file.
+pytest>=8.0.0,<9.0.0

@@ -21,6 +21,15 @@ class ActiveHoursScheduler:
     """
 
     @staticmethod
+    def _get_utc_now() -> datetime:
+        """Return the current UTC datetime.
+
+        Isolated in its own static method so that unit tests can
+        monkey-patch clock behaviour without touching system time.
+        """
+        return datetime.now(timezone.utc)
+
+    @staticmethod
     def is_active_now(endpoint: TargetEndpoint) -> bool:
         """Check whether the given endpoint is within its active hours right now.
 
@@ -46,7 +55,7 @@ class ActiveHoursScheduler:
         if start is None or end is None or start == end:
             return True
 
-        now_utc = datetime.now(timezone.utc)
+        now_utc = ActiveHoursScheduler._get_utc_now()
         current_hour = now_utc.hour
 
         if start <= end:

@@ -1,12 +1,13 @@
-# 🚀 READY FOR LAUNCH — Amz-Hunt Monitor Complete 🚀
+# 🚀 READY FOR LAUNCH — Amz-Hunt Monitor (Phases 1–4 Complete) 🚀
 
-## Project Status: ALL PHASES IMPLEMENTED ✅
+## Project Status: Phases 1–4 Implemented ✅
 
 | Phase | Status | Deliverables |
 |-------|--------|--------------|
-| **Phase 1** | ✅ Complete | 7 Core Domain Models, 4 Port Interfaces, Directory Scaffolding |
-| **Phase 2** | ✅ Complete | 6 Adapter Implementations (SQLite, curl_cffi, HTML/JSON Parsers, Telegram, Headers, Migrations) |
-| **Phase 3** | ✅ Complete | 5 Core Domain Services, Orchestrator, DI Container, Config, Shutdown, Entry Point, Seed Script |
+| **Phase 1** — Foundation | ✅ Complete | 7 Core Domain Models, 4 Port Interfaces, Directory Scaffolding |
+| **Phase 2** — Full Wiring | ✅ Complete | 6 Adapter Implementations (SQLite, curl_cffi, HTML/JSON Parsers, Telegram, Headers, Migrations) |
+| **Phase 3** — Intelligence | ✅ Complete | 5 Core Domain Services, Orchestrator, DI Container, Config, Shutdown, Entry Point, Seed Script |
+| **Phase 4** — Containerization | ✅ Complete | Multi-stage Dockerfile, docker-compose.yml, .dockerignore, non-root user, HEALTHCHECK |
 
 ## Launch Commands
 
@@ -22,16 +23,19 @@ python -m scripts.seed_targets
 python -m scripts.run_monitor
 ```
 
-## What Remains (Next Phases — Testing & Deployment)
+## What Remains (Phase 5+ — Resilience & Production)
 
-- [x] Integration tests: full pipeline from fetch → parse → dedup → notify → log (Verified via Live Run)
-- [x] Docker containerization (Created: requirements.txt, .dockerignore, Dockerfile, docker-compose.yml)
-- [ ] Unit tests for core domain services
+- [x] Docker containerization (Phases 1–4 complete)
+- [x] Minimal pytest unit test suite created (promotion fingerprint + scheduler logic)
+- [ ] Expand unit test coverage for remaining core services
 - [ ] CI/CD pipeline configuration
+- [ ] Exponential backoff & circuit breaker (Phase 5)
+- [ ] Prometheus metrics & Grafana dashboard (Phase 6)
+- [ ] Multi-domain marketplace support — KSA, UAE (Phase 7)
 
 ---
 
-# Agent_Handoff.md — Phase 2 Completion → Phase 3 Bridge
+# Agent_Handoff.md — Phases 1–4 Complete → Phase 5 Bridge
 
 ## - [x] Phase 1 Completed: Summary of Deliverables
 
@@ -65,7 +69,7 @@ Amz-Hunt/
 │   │   │   ├── storage.py           (IStorageBackend Protocol)
 │   │   │   ├── notification.py      (INotificationService Protocol)
 │   │   │   └── parser.py            (IParser Protocol)
-│   │   └── orchestrator.py          (PLACEHOLDER — Phase 3)
+│   │   └── orchestrator.py          (IMPLEMENTED — Phase 3)
 │   ├── adapters/
 │   │   ├── __init__.py
 │   │   ├── http/
@@ -85,11 +89,9 @@ Amz-Hunt/
 │   │       └── json_endpoint_parser.py (IMPLEMENTED — Phase 2)
 │   ├── config/
 │   │   ├── __init__.py
-│   │   └── settings.py              (PLACEHOLDER — Phase 3)
+│   │   └── settings.py              (IMPLEMENTED — Phase 3)
 │   └── utils/
-│       ├── __init__.py
-│       ├── logger.py                (PLACEHOLDER — Phase 3)
-│       └── url_utils.py             (PLACEHOLDER — Phase 3)
+│       └── __init__.py
 ├── tests/
 │   ├── __init__.py
 │   ├── unit/
@@ -157,7 +159,7 @@ All Ports are implemented as `typing.Protocol` with `@runtime_checkable` decorat
 - `src/core/**` — All core models and ports remain frozen from Phase 1
 - `Architecture_Blueprint.md` — Source of truth, reference only
 - `src/core/orchestrator.py` — Phase 3 territory
-- `src/config/settings.py`, `src/utils/logger.py`, `src/utils/url_utils.py` — Phase 3
+- `src/config/settings.py` — Phase 3 (now implemented)
 
 ---
 

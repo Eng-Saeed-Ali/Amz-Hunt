@@ -52,5 +52,3 @@ data/*.sqlite3
 *.log
 logs/
 
-# 7. Private Documentation
-Architecture_Blueprint.md

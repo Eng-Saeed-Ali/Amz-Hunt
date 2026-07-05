@@ -1,1 +1,0 @@
-"""[Phase 3 Placeholder] Structured JSON-line logger with rotation."""

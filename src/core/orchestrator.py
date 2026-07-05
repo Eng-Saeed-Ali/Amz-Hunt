@@ -24,10 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 class ScanOrchestrator:
-    """Master coordination engine that wires the 6-phase Amz-Hunt pipeline.
+    """Master coordination engine that wires the 7-phase Amz-Hunt pipeline.
 
-    Per Architecture Blueprint Section 3 (Data Flow & Pipeline), this
-    orchestrator executes the full scan cycle for each TargetEndpoint:
+    Per the Architecture Blueprint (Data Flow & Pipeline), this
+    orchestrator executes the full 7-phase scan cycle for each TargetEndpoint:
 
       Scheduling Gate → HTTP Fetch → Parse → Validate → Dedup → Notify → Log
 
